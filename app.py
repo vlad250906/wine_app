@@ -12,7 +12,7 @@ from sklearn.metrics import (
     roc_curve,
 )
 
-MODEL_DIR = Path(__file__).resolve().parent.parent / "wine_model"
+MODEL_DIR = Path(__file__).resolve().parent
 LABELS = {
     "fixed_acidity": "Фиксированная кислотность",
     "volatile_acidity": "Летучая кислотность",
@@ -226,4 +226,5 @@ with model_explanation:
         "При прочих равных рост признака с положительным коэффициентом повышает "
         "оценку вероятности хорошего вина, а с отрицательным - снижает."
     )
+
 
