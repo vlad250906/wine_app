@@ -39,8 +39,14 @@ def load_test_data():
 
 
 
+@st.cache_data
+def test_proba(_model, features):
+    good_class = list(_model.classes_).index(1)
+    return _model.predict_proba(features)[:, good_class]
+
+
 def show_batch_prediction(model, good_class, threshold):
-    st.caption(f"Порог из боковой панели — {threshold:.3f}.")
+    st.caption(f"Порог из боковой панели - {threshold:.3f}.")
     uploaded_file = st.file_uploader("Загрузите CSV с признаками вин", type=["csv"])
     if uploaded_file is None:
         return
@@ -54,7 +60,7 @@ def show_batch_prediction(model, good_class, threshold):
     features = list(model.feature_names_in_)
     missing = [feature for feature in features if feature not in wines.columns]
     if missing:
-        st.error("В CSV не хватает столбцов — " + ", ".join(missing))
+        st.error("В CSV не хватает столбцов - " + ", ".join(missing))
         return
     if wines.empty:
         st.error("В CSV нет строк с данными о винах.")
@@ -70,7 +76,7 @@ def show_batch_prediction(model, good_class, threshold):
         probability=probabilities,
         decision=(probabilities >= threshold).astype(int),
     )
-    st.caption("В столбце decision значение 1 означает, что вино прошло порог, а 0 — что не прошло.")
+    st.caption("В столбце decision значение 1 означает, что вино прошло порог, а 0 - что не прошло.")
     st.dataframe(results, hide_index=True)
     st.download_button(
         "Скачать результаты",
@@ -135,7 +141,7 @@ with single_wine:
 
 with model_metrics:
     actual = test["target"]
-    scores = model.predict_proba(test[model.feature_names_in_])[:, good_class]
+    scores = test_proba(model, test[model.feature_names_in_])
     predicted = scores >= threshold
     matrix = confusion_matrix(actual, predicted, labels=[0, 1])
     tn, fp, fn, tp = matrix.ravel()
@@ -209,14 +215,15 @@ with model_explanation:
     st.pyplot(figure)
 
     st.write(
-        f"**Сильнее всего за хорошее вино** — "
+        f"**Сильнее всего за хорошее вино** - "
         f"{labels[coefficients.idxmax()]} ({coefficients.max():+.3f})."
     )
     st.write(
-        f"**Сильнее всего против** — "
+        f"**Сильнее всего против** - "
         f"{labels[coefficients.idxmin()]} ({coefficients.min():+.3f})."
     )
     st.caption(
         "При прочих равных рост признака с положительным коэффициентом повышает "
-        "оценку вероятности хорошего вина, а с отрицательным — снижает."
+        "оценку вероятности хорошего вина, а с отрицательным - снижает."
     )
+
