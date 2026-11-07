@@ -98,8 +98,8 @@ threshold = st.sidebar.slider(
 st.sidebar.caption("Вино считается хорошим, если вероятность равна порогу или выше него.")
 
 good_class = list(model.classes_).index(1)
-single_wine, model_metrics, batch_prediction = st.tabs(
-    ["Оценка одного вина", "Модельные метрики", "Пакетное предсказание"]
+single_wine, model_metrics, batch_prediction, model_explanation = st.tabs(
+    ["Оценка одного вина", "Модельные метрики", "Пакетное предсказание", "Что выучила модель"]
 )
 with single_wine:
     values = {}
@@ -189,3 +189,34 @@ with model_metrics:
 
 with batch_prediction:
     show_batch_prediction(model, good_class, threshold)
+
+with model_explanation:
+    coefficients = pd.Series(
+        model.named_steps["logisticregression"].coef_[0],
+        index=model.feature_names_in_,
+    ).sort_values()
+    labels = {**LABELS, "is_red": "Красное вино (is_red)"}
+
+    figure = Figure(figsize=(9, 5), layout="constrained")
+    axis = figure.subplots()
+    axis.barh(
+        [labels[feature] for feature in coefficients.index],
+        coefficients,
+        color=["tab:blue" if value >= 0 else "tab:red" for value in coefficients],
+    )
+    axis.axvline(0, color="black", linewidth=0.8)
+    axis.set_xlabel("Коэффициент для масштабированного признака")
+    st.pyplot(figure)
+
+    st.write(
+        f"**Сильнее всего за хорошее вино** — "
+        f"{labels[coefficients.idxmax()]} ({coefficients.max():+.3f})."
+    )
+    st.write(
+        f"**Сильнее всего против** — "
+        f"{labels[coefficients.idxmin()]} ({coefficients.min():+.3f})."
+    )
+    st.caption(
+        "При прочих равных рост признака с положительным коэффициентом повышает "
+        "оценку вероятности хорошего вина, а с отрицательным — снижает."
+    )
