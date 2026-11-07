@@ -1,5 +1,8 @@
 # Оценка качества вина
 
+## Деплой
+- [https://wineapp-hjvhjit7zqt7hreabyxw6s.streamlit.app/](https://wineapp-hjvhjit7zqt7hreabyxw6s.streamlit.app/)
+
 ## Запуск
 
 Проверено на Python 3.14.0. Выполните команды из корня репозитория.
