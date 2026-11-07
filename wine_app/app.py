@@ -38,6 +38,48 @@ def load_test_data():
     return pd.read_csv(MODEL_DIR / "test.csv")
 
 
+
+def show_batch_prediction(model, good_class, threshold):
+    st.caption(f"Порог из боковой панели — {threshold:.3f}.")
+    uploaded_file = st.file_uploader("Загрузите CSV с признаками вин", type=["csv"])
+    if uploaded_file is None:
+        return
+
+    try:
+        wines = pd.read_csv(uploaded_file)
+    except (pd.errors.EmptyDataError, pd.errors.ParserError, UnicodeDecodeError):
+        st.error("Не удалось прочитать CSV. Проверьте, что файл сохранён в UTF-8 и использует запятые как разделители.")
+        return
+
+    features = list(model.feature_names_in_)
+    missing = [feature for feature in features if feature not in wines.columns]
+    if missing:
+        st.error("В CSV не хватает столбцов — " + ", ".join(missing))
+        return
+    if wines.empty:
+        st.error("В CSV нет строк с данными о винах.")
+        return
+
+    try:
+        probabilities = model.predict_proba(wines[features])[:, good_class]
+    except ValueError:
+        st.error("Проверьте значения признаков. Все 12 столбцов должны содержать числа без пропусков.")
+        return
+
+    results = wines[features].assign(
+        probability=probabilities,
+        decision=(probabilities >= threshold).astype(int),
+    )
+    st.caption("В столбце decision значение 1 означает, что вино прошло порог, а 0 — что не прошло.")
+    st.dataframe(results, hide_index=True)
+    st.download_button(
+        "Скачать результаты",
+        data=results.to_csv(index=False),
+        file_name="wine_predictions.csv",
+        mime="text/csv",
+    )
+
+
 st.set_page_config(page_title="Оценка вина")
 st.title("Оценка качества вина")
 
@@ -56,7 +98,9 @@ threshold = st.sidebar.slider(
 st.sidebar.caption("Вино считается хорошим, если вероятность равна порогу или выше него.")
 
 good_class = list(model.classes_).index(1)
-single_wine, model_metrics = st.tabs(["Оценка одного вина", "Модельные метрики"])
+single_wine, model_metrics, batch_prediction = st.tabs(
+    ["Оценка одного вина", "Модельные метрики", "Пакетное предсказание"]
+)
 with single_wine:
     values = {}
     columns = st.columns(2)
@@ -80,7 +124,6 @@ with single_wine:
     values["is_red"] = int(color == "Красное")
 
     wine = pd.DataFrame([values], columns=model.feature_names_in_)
-    good_class = list(model.classes_).index(1)
     probability = model.predict_proba(wine)[0, good_class]
 
     st.metric("Вероятность, что вино хорошее", f"{probability:.2%}")
@@ -143,3 +186,6 @@ with model_metrics:
         "в подборку может попасть больше хороших вин, а вместе с ними и больше "
         "вин, ошибочно признанных хорошими."
     )
+
+with batch_prediction:
+    show_batch_prediction(model, good_class, threshold)
